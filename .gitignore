@@ -1,0 +1,8 @@
+# virtual environment
+venv
+
+# python compiled files
+*.pyc
+
+# dump files
+*.json
