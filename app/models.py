@@ -1,53 +1,67 @@
-# Models for app
+# -*- coding: utf-8 -*-
+from datetime import date
 from app import db
-from app.utils import get_current_date
+from app.mixins import ModelMixin
 
-class User(db.Model):
+
+class User(ModelMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100))
-    email = db.Column(db.String(100), index=True, unique=True)
+    name = db.Column(db.String(100), index=True)
+    email = db.Column(db.String(100), index=True)
 
-    def __init__(self, name, email):
-        self.name = name
-        self.email = email
+    __fields__ = ['name', 'email']
+
+    def __init__(self, *args, **kwargs):
+        super(User, self).__init__(*args, **kwargs)
 
     def __repr__(self):
         return '<User %r>' % (self.name)
 
 
-class Hub(db.Model):
+class Location(ModelMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), index=True, unique=True)
-    location = db.Column(db.String(100))
 
-    def __init__(self, name, location):
-        self.name = name
-        self.location = location
+    __fields__ = ['name']
 
-    def get_dict(self):
-        return {'name': self.name, 'location': self.location}
+    def __init__(self, *args, **kwargs):
+        super(Location, self).__init__(*args, **kwargs)
 
     def __repr__(self):
-        return '<Hub %s>' % (self.name)
+        return '<Location %s>' % (self.name)
 
 
-class Plan(db.Model):
+class Hub(ModelMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), index=True, unique=True)
-    price = db.Column(db.Numeric(precision=10, scale=4))
+    location_id = db.Column(db.Integer, db.ForeignKey('location.id'))
+    location = db.relationship('Location',
+                               backref=db.backref('hub_set', lazy='dynamic'))
 
-    def __init__(self, name, price):
-        self.name = name
-        self.price = price
+    __fields__ = ['name', 'location']
 
-    def get_dict(self):
-        return {'name': self.name, 'total_price_per_cycle': self.price}
+    def __init__(self, *args, **kwargs):
+        super(Hub, self).__init__(*args, **kwargs)
+
+    def __repr__(self):
+        return '<Hub %s %s>' % (self.name, self.location)
+
+
+class Plan(ModelMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), index=True)
+    price = db.Column(db.Numeric(precision=20, scale=4))
+
+    __fields__ = ['name', 'price']
+
+    def __init__(self, *args, **kwargs):
+        super(Plan, self).__init__(*args, **kwargs)
 
     def __repr__(self):
         return '<Plan %s>' % (self.name)
 
 
-class HubPlan(db.Model):
+class HubPlan(ModelMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     hub_id = db.Column(db.Integer, db.ForeignKey('hub.id'))
     hub = db.relationship('Hub',
@@ -57,15 +71,16 @@ class HubPlan(db.Model):
     plan = db.relationship('Plan',
                            backref=db.backref('hub_plan_set', lazy='dynamic'))
 
-    def __init__(self, hub, plan):
-        self.hub = hub
-        self.plan = plan
+    __fields__ = ['hub', 'plan']
+
+    def __init__(self, *args, **kwargs):
+        super(HubPlan, self).__init__(*args, **kwargs)
 
     def __repr__(self):
         return '<HubPlan %s %s>' % (self.hub.name, self.plan.name)
 
 
-class Membership(db.Model):
+class Membership(ModelMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     cobot_id = db.Column(db.String(50), index=True, unique=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
@@ -78,20 +93,45 @@ class Membership(db.Model):
     confirmed_at = db.Column(db.Date, index=True)
     canceled_to = db.Column(db.Date, index=True)
 
-    def __init__(self, cb_id, user, confirmed_at, canceled_to=None):
-        self.cobot_id = cb_id
-        self.user = user
-        self.confirmed_at = confirmed_at
-        if (canceled_to or canceled_to != 'null'):
-            self.canceled_to = canceled_to
-        else:
-            self.canceled_to = 'null'
+    __fields__ = ['cobot_id', 'user', 'plans', 'confirmed_at', 'canceled_to']
+
+    def __init__(self, *args, **kwargs):
+        super(Membership, self).__init__(*args, **kwargs)
 
     def __repr__(self):
         return '<Membership %s %s>' % (self.cobot_id, self.user)
 
+    def assign_user(self, user):
+        """
+        Assign a user to membership
+        """
+        if isinstance(user, User):
+            self.user = user
+            self.save()
 
-class MembershipPlan(db.Model):
+    def set_canceled_date(self, c_date):
+        """
+        Set a canceled_to date of membership
+        """
+        if isinstance(c_date, date):
+            self.canceled_to = c_date
+            self.save()
+
+    def get_last_membership_plan(self):
+        """
+        Return a last membership_plan instance
+        """
+        if getattr(self, 'last_membership_plan', None):
+            # if last_membership_plan attribute is set then return it
+            return self.last_membership_plan
+
+        # otherwise, get it from database, set attribute and return it
+        m_plans = self.plans.all()
+        self.last_membership_plan = m_plans[-1] if len(m_plans) > 0 else None
+        return self.last_membership_plan
+
+
+class MembershipPlan(ModelMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     hub_plan_id = db.Column(db.Integer, db.ForeignKey('hub_plan.id'))
     hub_plan = db.relationship('HubPlan',
@@ -101,62 +141,18 @@ class MembershipPlan(db.Model):
     start_date = db.Column(db.Date, index=True)
     end_date = db.Column(db.Date, index=True)
 
-    def __init__(self, membership, hub_plan, end_date=None):
-        self.membership = membership
-        self.hub_plan = hub_plan
-        self.start_date = get_current_date()
-        if (end_date or end_date != 'null'):
-            self.end_date = end_date
-        else:
-            self.end_date = 'null'
+    __fields__ = ['hub_plan', 'membership', 'start_date', 'end_date']
+
+    def __init__(self, *args, **kwargs):
+        super(MembershipPlan, self).__init__(*args, **kwargs)
 
     def __repr__(self):
         return '<MembershipPlan %s %s>' % (self.membership, self.hub_plan)
 
-
-class Time(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    year = db.Column(db.Integer)
-    month = db.Column(db.Integer)
-    day = db.Column(db.Integer)
-    date = db.Column(db.Date, index=True)
-
-    def __init__(self, date):
-        self.date = date
-        self.year = date.year
-        self.month = date.month
-        self.day = date.day
-
-    def __repr__(self):
-        return '<Time %s>' % (self.date)
-
-
-class MemberReport(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    time_id = db.Column(db.Integer, db.ForeignKey('time.id'))
-    time = db.relationship('Time',
-                           backref=db.backref('member_report_set',
-                                              lazy='dynamic'))
-    hub_plan_id = db.Column(db.Integer, db.ForeignKey('hub_plan.id'))
-    hub_plan = db.relationship('HubPlan',
-                               backref=db.backref('member_report_set',
-                                                  lazy='dynamic'))
-    new_member_count = db.Column(db.Integer, default=0)
-    retain_member_count = db.Column(db.Integer, default=0)
-    leave_member_count = db.Column(db.Integer, default=0)
-
-    def __init__(self, time, hub_plan):
-        self.time = time
-        self.hub_plan = hub_plan
-
-    def __repr__(self):
-        return '<MemberReport %s %s>' % (self.hub_plan, self.time)
-
-    def increment_nm_cnt_by(self, cnt):
-        self.new_member_count += cnt
-
-    def increment_rm_cnt_by(self, cnt):
-        self.retain_member_count += cnt
-
-    def increment_lm_cnt_by(self, cnt):
-        self.leave_member_count += cnt
+    def set_end_date(self, e_date):
+        """
+        Set end_date of membership plan
+        """
+        if isinstance(e_date, date):
+            self.end_date = e_date
+            self.save()
