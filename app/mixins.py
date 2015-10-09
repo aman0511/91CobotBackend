@@ -3,8 +3,10 @@
 A model mixin class have some basic functions which provide extra
 functionality to model class
 """
-import traceback
 from app import db
+
+
+import traceback
 from decimal import Decimal
 from datetime import datetime, date
 from sqlalchemy.ext.declarative import DeclarativeMeta
@@ -152,7 +154,17 @@ class ModelMixin(object):
         return cls()._set_fields(**data)
 
     @classmethod
-    def _filter_by(cls, **kwargs):
+    def filter(cls, *criterion):
+        """
+        Return a filtered results
+        """
+        try:
+            return cls.query.filter(*criterion)
+        except Exception, e:
+            raise e
+
+    @classmethod
+    def filter_by(cls, **kwargs):
         """
         Return a filtered results
         :param **kwargs: filter parameters
@@ -163,28 +175,50 @@ class ModelMixin(object):
             raise e
 
     @classmethod
-    def find(cls, serialize=False, **kwargs):
+    def find(cls, *criterion, **kwargs):
         """
         Returns a list of instances filtered by the specified keyword
         arguments.
         :param **kwargs: filter parameters
         """
         try:
-            return cls._filter_by(**kwargs).all()
+            if len(criterion):
+                return cls.filter(*criterion).all()
+
+            if len(kwargs):
+                return cls.filter_by(**kwargs).all()
         except Exception, e:
             raise e
 
     @classmethod
-    def first(cls, **kwargs):
+    def first(cls, *criterion, **kwargs):
         """
         Returns the first instance found of the service's model filtered
         by the specified key word arguments.
         :param **kwargs: filter parameters
         """
         try:
-            return cls._filter_by(**kwargs).first()
-        except:
-            return None
+            if len(criterion):
+                return cls.filter(*criterion).first()
+
+            if len(kwargs):
+                return cls.filter_by(**kwargs).first()
+        except Exception, e:
+            raise e
+
+    @classmethod
+    def count(cls, *criterion, **kwargs):
+        """
+        Returns a count of matched instance
+        """
+        try:
+            if len(criterion):
+                return cls.filter(*criterion).count()
+
+            if len(kwargs):
+                return cls.filter_by(**kwargs).count()
+        except Exception, e:
+            raise e
 
     @classmethod
     def get(cls, **kwargs):

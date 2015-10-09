@@ -84,8 +84,11 @@ class Membership(ModelMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     cobot_id = db.Column(db.String(50), index=True, unique=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    hub_id = db.Column(db.Integer, db.ForeignKey('hub.id'))
     user = db.relationship('User',
                            backref=db.backref('membership', lazy='dynamic'))
+    hub = db.relationship('Hub',
+                          backref=db.backref('membership', lazy='dynamic'))
     plans = db.relationship('MembershipPlan',
                             backref=db.backref('membership'), lazy='dynamic',
                             order_by='MembershipPlan.start_date')
@@ -101,6 +104,14 @@ class Membership(ModelMixin, db.Model):
     def __repr__(self):
         return '<Membership %s %s>' % (self.cobot_id, self.user)
 
+    def assign_hub(self, hub):
+        """
+        Assign a hub to membership
+        """
+        if isinstance(hub, Hub):
+            self.hub = hub
+            self.save()
+
     def assign_user(self, user):
         """
         Assign a user to membership
@@ -111,10 +122,14 @@ class Membership(ModelMixin, db.Model):
 
     def set_canceled_date(self, c_date):
         """
-        Set a canceled_to date of membership
+        Set a canceled_to date of membership and also set end_date of last
+        membership_plan of this membership as c_date
         """
         if isinstance(c_date, date):
             self.canceled_to = c_date
+            last_membership_plan = self.get_last_membership_plan()
+            if last_membership_plan:
+                self.last_membership_plan.end_date = c_date
             self.save()
 
     def get_last_membership_plan(self):

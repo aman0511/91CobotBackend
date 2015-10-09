@@ -49,13 +49,11 @@ def process_data_of_hub(hub, data, date_of_crawl=None):
             # get it's instance
             membership = Membership.create_or_get(**m_data['membership'])
 
+            # assign a hub to this membership if not else do nothing
+            membership.assign_hub(hub)
+
             # assign a user to this membership if not else do nothing
             membership.assign_user(user)
-
-            # check if membership ended or not and update it, if yes
-            membership.set_canceled_date(m_data['membership']['canceled_to'])
-
-            # print(membership)
 
             # check plan exists or not if not create plan else get it's
             # instance
@@ -74,7 +72,7 @@ def process_data_of_hub(hub, data, date_of_crawl=None):
             # check if plan of a membership changed or not
             if is_membership_plan_changed(membership, hub_plan):
                 # if plan changed then set end_date of last active plan of
-                # a membership as date_of_crawl
+                # a membership as date_of_crawl, if any
                 last_membership_plan = set_end_date_of_last_membership_plan(
                                 membership, date_of_crawl)
                 # print(last_membership_plan)
@@ -85,11 +83,25 @@ def process_data_of_hub(hub, data, date_of_crawl=None):
                     'hub_plan': hub_plan,
                     'start_date': get_date_obj(date_of_crawl)
                 }
+
+                # and, also set `start_date` of membership plan depending upon
+                # last_membership_plan existence
+                if not last_membership_plan:
+                    context['start_date'] = \
+                        m_data['membership']['confirmed_at']
+
+                # create a new membership plan
                 membership_plan = MembershipPlan.create(**context)
                 # print(membership_plan)
             else:
                 # nothing to do
                 pass
+
+            # check if membership ended or not and, if yes set cancele_to date
+            # of membership and also set end_date of last membership_plan of
+            # this membership_plan
+            membership.set_canceled_date(m_data['membership']['canceled_to'])
+            # print(membership)
 
             # print('\n')
 

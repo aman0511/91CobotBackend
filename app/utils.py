@@ -20,8 +20,7 @@ def get_current_date():
     """
     Return curret date instance of datetime.date
     """
-    d = datetime.datetime.now()
-    return datetime.date(d.year, d.month, d.day)
+    return datetime.date.today()
 
 
 def get_current_date_in_str():
@@ -88,3 +87,10 @@ def increment_date(date, **kwargs):
     if isinstance(date, datetime.date):
         return date + datetime.timedelta(**kwargs)
     return None
+
+
+def decrement_date(date, **kwargs):
+    """
+    Decrement date by no. of specified days
+    """
+    return increment_date(date, **kwargs)
