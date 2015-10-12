@@ -8,17 +8,20 @@ from __future__ import print_function
 import requests
 import traceback
 import config
-from app.models import (User, Hub, Plan, HubPlan, Membership, MembershipPlan)
+from app.models import (User, Hub, Plan, HubPlan, Membership, MembershipPlan,
+                        Time, MemberReport)
 from app.utils import (get_first_date_of_month,
                        get_last_date_of_month,
                        get_current_date_in_str,
                        get_date_obj,
-                       get_date_str,
                        increment_date,
                        is_date_in_valid_format)
 from app.helpers import (preprocess_membership_data,
                          is_membership_plan_changed,
-                         set_end_date_of_last_membership_plan)
+                         set_end_date_of_last_membership_plan,
+                         get_and_set_new_members_report_for_a_hub_plan,
+                         get_and_set_retain_members_report_for_a_hub_plan,
+                         get_and_set_leave_members_report_for_a_hub_plan)
 
 
 def process_data_of_hub(hub, data, date_of_crawl=None):
@@ -199,3 +202,92 @@ def start_data_task_of_duration(s_date, e_date):
 
         # increment crawl date by 1 day
         crawl_date = increment_date(crawl_date, days=1)
+
+
+def get_and_set_member_report_metrices_of_hub_plan(hub_plan, date_str):
+    """
+    Calculate member report metrics for a given month from present data
+    in database
+    """
+    if not(isinstance(hub_plan, HubPlan)):
+        return None
+
+    # get start date of month
+    start_date_of_month = get_first_date_of_month(date_str)
+
+    # get end date of month
+    end_date_of_month = get_last_date_of_month(date_str)
+
+    # check time exists or not if not create time else get it's instance
+    time = Time.create_or_get(date=start_date_of_month)
+
+    # check member_report exists or not if not create member_report else
+    # get it's instance
+    member_report = MemberReport.create_or_get(time=time, hub_plan=hub_plan)
+
+    # reset all counters of member_report to be `0`, so that we can start
+    # with fresh member_report instance
+    member_report.reset_all_counter()
+
+    # get and set count of all new membership plans of a particular hub and
+    # plan within a given time frame(i.e here is for a month)
+    get_and_set_new_members_report_for_a_hub_plan(member_report,
+                                                  hub_plan,
+                                                  start_date_of_month,
+                                                  end_date_of_month)
+
+    # get and set count of all retain membership plans of a particular hub
+    # and plan within a given time frame(i.e here is for a month)
+    get_and_set_retain_members_report_for_a_hub_plan(member_report,
+                                                     hub_plan,
+                                                     start_date_of_month,
+                                                     end_date_of_month)
+
+    # get and set count of all leave membership plans of a particular hub
+    # and plan within a given time frame(i.e here is for a month)
+    get_and_set_leave_members_report_for_a_hub_plan(member_report,
+                                                    hub_plan,
+                                                    start_date_of_month,
+                                                    end_date_of_month)
+
+
+def calculate_member_report_metrices_of_a_month(date_str):
+    """
+    Calculate member report metrics for a given month from present data
+    in database for all hub_plan's
+    """
+    if not is_date_in_valid_format(date_str, '%Y-%m'):
+        return None
+
+    # get all plans of all hubs
+    hub_plans = HubPlan.get_all()
+
+    # calculate member report metrics for each plan of all hub
+    for hub_plan in hub_plans:
+        get_and_set_member_report_metrices_of_hub_plan(hub_plan, date_str)
+        # print('\n')
+
+
+def start_report_task_of_month(date_str):
+    """
+    Start task to calculate member report metrics of a particular given
+    month from data in database
+    """
+    return calculate_member_report_metrices_of_a_month(date_str)
+
+
+def start_report_task_of_duration(s_date, e_date):
+    """
+    Start task to calculate member report metrics of a particular given
+    duration from data in database
+    """
+    crawl_date = get_date_obj(get_first_date_of_month(s_date))
+    end_date = get_date_obj(get_last_date_of_month(e_date))
+
+    while (crawl_date <= end_date):
+        # get data of crawl date and process it
+        calculate_member_report_metrices_of_a_month(crawl_date.isoformat())
+
+        # increment crawl date by 1 day
+        crawl_date = increment_date(crawl_date, weeks=4)
+        print('Report processed on %s' % (crawl_date.isoformat()))

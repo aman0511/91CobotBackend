@@ -3,6 +3,9 @@ from datetime import date
 from app import db
 from app.mixins import ModelMixin
 
+# a types of plan
+PLAN_TYPES = ('Full Time', 'Part Time', 'Others', 'Ignore')
+
 
 class User(ModelMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -50,9 +53,10 @@ class Hub(ModelMixin, db.Model):
 class Plan(ModelMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), index=True)
+    type = db.Column(db.Enum(PLAN_TYPES, name='plan_types'))
     price = db.Column(db.Numeric(precision=20, scale=4))
 
-    __fields__ = ['name', 'price']
+    __fields__ = ['type', 'name', 'price']
 
     def __init__(self, *args, **kwargs):
         super(Plan, self).__init__(*args, **kwargs)
@@ -171,3 +175,80 @@ class MembershipPlan(ModelMixin, db.Model):
         if isinstance(e_date, date):
             self.end_date = e_date
             self.save()
+
+
+class Time(ModelMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    year = db.Column(db.Integer)
+    month = db.Column(db.Integer)
+    date = db.Column(db.Date, index=True)
+
+    __fields__ = ['year', 'month', 'date']
+
+    def __init__(self, *args, **kwargs):
+        super(Time, self).__init__(*args, **kwargs)
+        if self.date:
+            self.year = self.date.year
+            self.month = self.date.month
+        self.save()
+
+    def __repr__(self):
+        return '<Time %s>' % (self.date)
+
+
+class MemberReport(ModelMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    time_id = db.Column(db.Integer, db.ForeignKey('time.id'))
+    time = db.relationship('Time',
+                           backref=db.backref('member_report_set',
+                                              lazy='dynamic'))
+    hub_plan_id = db.Column(db.Integer, db.ForeignKey('hub_plan.id'))
+    hub_plan = db.relationship('HubPlan',
+                               backref=db.backref('member_report_set',
+                                                  lazy='dynamic'))
+    new_member_count = db.Column(db.Integer, default=0)
+    retain_member_count = db.Column(db.Integer, default=0)
+    leave_member_count = db.Column(db.Integer, default=0)
+    new_member_revenue = db.Column(db.Numeric(precision=20, scale=4),
+                                   default=0)
+    retain_member_revenue = db.Column(db.Numeric(precision=20, scale=4),
+                                      default=0)
+    leave_member_revenue = db.Column(db.Numeric(precision=20, scale=4),
+                                     default=0)
+
+    __fields__ = ['hub_plan', 'time', 'new_member_count',
+                  'retain_member_count', 'leave_member_count',
+                  'new_member_revenue', 'retain_member_revenue',
+                  'leave_member_revenue']
+
+    def __init__(self, *args, **kwargs):
+        super(MemberReport, self).__init__(*args, **kwargs)
+
+    def __repr__(self):
+        return '<MemberReport %s %s>' % (self.hub_plan, self.time)
+
+    def reset_all_counter(self):
+        self.new_member_count = 0
+        self.retain_member_count = 0
+        self.leave_member_count = 0
+        self.new_member_revenue = 0
+        self.retain_member_revenue = 0
+        self.leave_member_revenue = 0
+
+    def increment_nm_cnt_by(self, cnt):
+        self.new_member_count += cnt
+
+    def increment_rm_cnt_by(self, cnt):
+        self.retain_member_count += cnt
+
+    def increment_lm_cnt_by(self, cnt):
+        self.leave_member_count += cnt
+
+    def increment_nm_rev_by(self, cnt):
+        self.new_member_revenue += cnt
+
+    def increment_rm_rev_by(self, cnt):
+        self.retain_member_revenue += cnt
+
+    def increment_lm_rev_by(self, cnt):
+        self.leave_member_revenue += cnt
