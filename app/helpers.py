@@ -1,9 +1,19 @@
 # -*- coding: utf-8 -*-
 from flask import url_for
 from app import app
-from app.models import (Membership, HubPlan, Hub, Plan,
-                        MembershipPlan, MemberReport)
-from app.utils import get_date_obj, decrement_date, get_current_date
+from app.models import (Hub,
+                        Plan,
+                        HubPlan,
+                        Membership,
+                        MembershipPlan,
+                        Time,
+                        MemberReport)
+from app.utils import (is_date_in_valid_format,
+                       get_date_obj,
+                       decrement_date,
+                       get_current_date,
+                       get_first_date_of_month,
+                       get_last_date_of_month)
 from sqlalchemy import and_, or_
 
 # Function to easily find your assets
@@ -77,26 +87,14 @@ def get_cnt_of_active_members_in_past(hub=None, days=0):
     """
     base_date = decrement_date(get_current_date(), days=-days).isoformat()
 
-    query = None
-    print base_date
-
-    # if no hub passed, then return all hubs active members count
-    if not hub:
-        query = or_(Membership.canceled_to == None,
-                    Membership.canceled_to >= base_date)
+    query = or_(Membership.canceled_to == None,
+                Membership.canceled_to >= base_date)
 
     # if hub's instance then return count of active members of a hub
     if isinstance(hub, Hub):
-        query = or_(Membership.hub == hub, Membership.canceled_to == None,
-                    Membership.canceled_to >= base_date)
+        query = and_(Membership.hub == hub, query)
 
-    print query
-    # if query exist, return results
-    if query is not None:
-        return int(Membership.count(query))
-
-    # otherwise return None
-    return None
+    return int(Membership.count(query))
 
 
 def get_cnt_of_new_members_in_past(hub=None, days=30):
@@ -105,23 +103,13 @@ def get_cnt_of_new_members_in_past(hub=None, days=30):
     """
     base_date = decrement_date(get_current_date(), days=-days).isoformat()
 
-    query = None
-
-    # if no hub passed, then return all hubs new members count
-    if not hub:
-        query = and_(Membership.confirmed_at >= base_date)
+    query = and_(Membership.confirmed_at >= base_date)
 
     # if hub's instance then return count of new members of a hub
     if isinstance(hub, Hub):
-        query = and_(Membership.hub == hub,
-                     Membership.confirmed_at >= base_date)
+        query = and_(Membership.hub == hub, query)
 
-    # if query exist, return results
-    if query is not None:
-        return int(Membership.count(query))
-
-    # otherwise return None
-    return None
+    return int(Membership.count(query))
 
 
 def get_cnt_of_leave_members_in_past(hub=None, days=30):
@@ -130,23 +118,13 @@ def get_cnt_of_leave_members_in_past(hub=None, days=30):
     """
     base_date = decrement_date(get_current_date(), days=-days).isoformat()
 
-    query = None
-
-    # if no hub passed, then return all hubs new members count
-    if not hub:
-        query = and_(Membership.canceled_to >= base_date)
+    query = and_(Membership.canceled_to >= base_date)
 
     # if hub's instance then return count of new members of a hub
     if isinstance(hub, Hub):
-        query = and_(Membership.hub == hub,
-                     Membership.canceled_to >= base_date)
+        query = and_(Membership.hub == hub, query)
 
-    # if query exist, return results
-    if query is not None:
-        return int(Membership.count(query))
-
-    # otherwise return None
-    return None
+    return int(Membership.count(query))
 
 
 def get_all_hub_plans_of_plan_type(hub=None, plan_type=None):
@@ -165,22 +143,32 @@ def get_all_hub_plans_of_plan_type(hub=None, plan_type=None):
     res = list()
 
     for plan in plans:
+        query = and_(HubPlan.plan == plan)
+
         if isinstance(hub, Hub):
-            query = and_(HubPlan.hub == hub, HubPlan.plan == plan)
-        else:
-            query = and_(HubPlan.plan == plan)
+            query = and_(query, HubPlan.hub == hub)
 
         hub_plans = HubPlan.find(query)
         res.extend(hub_plans)
     return res
 
 
-def get_all_member_reports_of_hub_plans(hub_plans):
+def get_all_member_reports_of_hub_plans(hub_plans, from_d=None, to_d=None):
     """
     """
     hub_plan_ids = [hp.id for hp in hub_plans if isinstance(hp, HubPlan)]
 
-    return MemberReport.find(MemberReport.hub_plan_id.in_(hub_plan_ids))
+    query = and_(MemberReport.hub_plan_id.in_(hub_plan_ids))
+
+    if is_date_in_valid_format(from_d, '%Y-%m'):
+            date_str = get_first_date_of_month(from_d)
+            query = and_(query, MemberReport.time.has(Time.date >= date_str))
+
+    if is_date_in_valid_format(to_d, '%Y-%m'):
+            date_str = get_first_date_of_month(to_d)
+            query = and_(query, MemberReport.time.has(Time.date <= date_str))
+
+    return MemberReport.find(query)
 
 
 def get_new_membership_plans_in_a_time_frame(hub_plan, start_date, end_date):

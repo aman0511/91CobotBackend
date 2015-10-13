@@ -1,13 +1,9 @@
 # -*- coding: utf-8 -*-
 from flask.ext.api import FlaskAPI
 from flask.ext.sqlalchemy import SQLAlchemy
-from flask_marshmallow import Marshmallow
 
 # create a flask application instance
 app = FlaskAPI(__name__)
-
-# create marshmallow instance
-ma = Marshmallow(app)
 
 # create SQLAlchemy instance
 db = SQLAlchemy(app)
