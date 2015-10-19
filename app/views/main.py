@@ -12,11 +12,11 @@ from collections import OrderedDict
 from app.utils import is_date_in_valid_format
 
 # create blueprint instance
-mod = Blueprint('main', __name__, url_prefix='/api')
+api = Blueprint('main', __name__, url_prefix='/api')
 
 
 # create views here
-@mod.route("/cards", methods=['GET'])
+@api.route("/cards", methods=['GET'])
 def get_cards():
     # extract hub_name` argument from request
     hub_name = request.args.get('hub_name', None)
@@ -85,7 +85,7 @@ def get_cards():
     return (res, status.HTTP_200_OK)
 
 
-@mod.route("/reports", methods=['GET'])
+@api.route("/reports", methods=['GET'])
 def get_reports():
     # extract hub_name` argument from request
     hub_name = request.args.get('hub_name', None)
