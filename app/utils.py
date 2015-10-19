@@ -11,9 +11,11 @@ def is_date_in_valid_format(date_text, format='%Y-%m-%d'):
     Validate a date_text is in correct specified format or not
     """
     try:
-        return datetime.datetime.strptime(date_text, format).date()
+        if date_text:
+            return datetime.datetime.strptime(date_text, format).date()
     except ValueError:
-        raise ValueError("Incorrect date format, use --help to get format")
+        # raise ValueError("Incorrect date format, use --help to get format")
+        return None
 
 
 def get_current_date():

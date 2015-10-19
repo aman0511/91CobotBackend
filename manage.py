@@ -9,7 +9,9 @@ from flask.ext.script import Shell, Server, Manager, prompt_bool
 from flask.ext.script.commands import InvalidCommand
 from app import app, db, models
 from app.tasks import (start_data_task_of_day,
-                       start_data_task_of_duration)
+                       start_data_task_of_duration,
+                       start_report_task_of_month,
+                       start_report_task_of_duration)
 
 manager = Manager(app)
 
@@ -55,6 +57,26 @@ def run_task_data(start_date, end_date):
             start_data_task_of_duration(start_date, end_date)
         elif start_date:
             start_data_task_of_day(start_date)
+        else:
+            print('Check argument options, type command with --help')
+            return
+
+        print('===> Task Completed')
+    except Exception:
+        traceback.print_exc()
+
+
+@manager.option('-sd', '--startDate', dest='start_date', default=None,
+                help="start date of crawl in 'YYYY-MM' format")
+@manager.option('-ed', '--endDate', dest='end_date', default=None,
+                help="end date of crawl in 'YYYY-MM' format")
+def run_task_report(start_date, end_date):
+    """Runs a task to calculate member report metrices from database data"""
+    try:
+        if start_date and end_date:
+            start_report_task_of_duration(start_date, end_date)
+        elif start_date:
+            start_report_task_of_month(start_date)
         else:
             print('Check argument options, type command with --help')
             return

@@ -7,6 +7,7 @@ from app import db
 
 
 import traceback
+from collections import OrderedDict
 from decimal import Decimal
 from datetime import datetime, date
 from sqlalchemy.ext.declarative import DeclarativeMeta
@@ -28,6 +29,9 @@ class ModelMixin(object):
 
         # initialize errors dictionary
         self.errors = dict()
+
+        # save all changes
+        self.save()
 
     @property
     def __columns__(self):
@@ -96,7 +100,7 @@ class ModelMixin(object):
         """
         Serialize all columns in a process_fields of a model
         """
-        res = dict()
+        res = OrderedDict()
         for c in self.__columns__:
             if self._is_process_field(c):
                 res[c] = self._serialize_column(c)
@@ -124,7 +128,7 @@ class ModelMixin(object):
         """
         Serialize all relationships in a process_fields of a model
         """
-        res = dict()
+        res = OrderedDict()
         for r in self.__relationships__:
             if self._is_process_field(r):
                 res[r] = self._serialize_relationship(r)
@@ -134,7 +138,7 @@ class ModelMixin(object):
         """
         Serialize a model instance support nested relationships also
         """
-        res = dict()
+        res = OrderedDict()
         # serialize data of native columns of model
         res.update(self._serialize_columns(**kwargs))
 
@@ -187,6 +191,7 @@ class ModelMixin(object):
 
             if len(kwargs):
                 return cls.filter_by(**kwargs).all()
+            return cls.get_all()
         except Exception, e:
             raise e
 
@@ -259,7 +264,7 @@ class ModelMixin(object):
         Returns a new, saved instance of the service's model class.
         :param **kwargs: instance parameters
         """
-        return cls.new(**kwargs).save()
+        return cls(**kwargs)
 
     @classmethod
     def is_exists(cls, **kwargs):

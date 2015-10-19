@@ -3,17 +3,20 @@ from __future__ import division
 from flask import Blueprint, request
 from app.helpers import (get_cnt_of_active_members_in_past,
                          get_cnt_of_new_members_in_past,
-                         get_cnt_of_leave_members_in_past)
+                         get_cnt_of_leave_members_in_past,
+                         get_all_hub_plans_of_plan_type,
+                         get_all_member_reports_of_hub_plans)
 from flask.ext.api import status
-from app.models import Hub
+from app.models import PLAN_TYPES, Hub
 from collections import OrderedDict
+from app.utils import is_date_in_valid_format
 
 # create blueprint instance
-mod = Blueprint('main', __name__, url_prefix='/api')
+api = Blueprint('main', __name__, url_prefix='/api')
 
 
 # create views here
-@mod.route("/cards", methods=['GET'])
+@api.route("/cards", methods=['GET'])
 def get_cards():
     # extract hub_name` argument from request
     hub_name = request.args.get('hub_name', None)
@@ -80,3 +83,54 @@ def get_cards():
 
     # return response
     return (res, status.HTTP_200_OK)
+
+
+@api.route("/reports", methods=['GET'])
+def get_reports():
+    # extract hub_name` argument from request
+    hub_name = request.args.get('hub_name', None)
+
+    #  extract plan_type
+    plan_type = request.args.get('plan_type', None)
+
+    #  extract from
+    from_d = request.args.get('from', None)
+
+    #  extract to
+    to_d = request.args.get('to', None)
+
+    # By default, hub=None signify all hubs
+    hub = None
+
+    # if hub_name is passed in request arguments, then get hub's instance
+    if hub_name:
+        hub = Hub.first(name=hub_name)
+        if not hub:
+            return ({'error': 'No such hub found'},
+                    status.HTTP_400_BAD_REQUEST)
+
+    if plan_type:
+        if plan_type not in PLAN_TYPES:
+            return ({'error': 'No such plan type found'},
+                    status.HTTP_400_BAD_REQUEST)
+
+    if from_d or to_d:
+        if not (is_date_in_valid_format(from_d, '%Y-%m') or
+                is_date_in_valid_format(to_d, '%Y-%m')):
+            return ({'error': 'Date should be in YYYY-MM format'},
+                    status.HTTP_400_BAD_REQUEST)
+
+    # intializise list to have results to return as response
+    res = list()
+
+    # get all hub plans for all above plans
+    hub_plans = get_all_hub_plans_of_plan_type(hub, plan_type)
+
+    # get member report's for all hub_plan's
+    m_reports = get_all_member_reports_of_hub_plans(hub_plans, from_d, to_d)
+
+    # serialize all member report's and append to them in result
+    for mr in m_reports:
+        res.append(mr.serialize())
+
+    return res
