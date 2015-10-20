@@ -1,141 +1,293 @@
-# Tasks to get data and insert data into database
-import os
-import json
+# -*- coding: utf-8 -*-
+"""
+Two Tasks for cobot data
+ * get data and insert data into database
+ * calculate member report metrics
+"""
+from __future__ import print_function
 import requests
 import traceback
-from app.utils import get_current_date
-from app.helpers import *
+import config
+from app.models import (User, Hub, Plan, HubPlan, Membership, MembershipPlan,
+                        Time, MemberReport)
+from app.utils import (get_first_date_of_month,
+                       get_last_date_of_month,
+                       get_current_date_in_str,
+                       get_date_obj,
+                       increment_date,
+                       is_date_in_valid_format)
+from app.helpers import (preprocess_membership_data,
+                         is_membership_plan_changed,
+                         set_end_date_of_last_membership_plan,
+                         get_and_set_new_members_report_for_a_hub_plan,
+                         get_and_set_retain_members_report_for_a_hub_plan,
+                         get_and_set_leave_members_report_for_a_hub_plan)
 
 
-def process_data(_hub, data):
-    """Process data given by cobot api"""
+def process_data_of_hub(hub, data, date_of_crawl=None):
+    """
+    Process data given by cobot api
+    """
 
-    hub = create_or_get_hub(_hub)
+    # check if date of crawl is set or not
+    # if not then set it with current date
+    if not date_of_crawl:
+        date_of_crawl = get_current_date_in_str()
 
-    # add it to db session
-    add_to_db_session([hub])
-
-    # commit all changes to DB
-    commit_to_db()
-
-    index = 0
-    for membership_data in data:
+    for index, membership_data in enumerate(data):
         try:
-            print 'Processing membership no. %s' % (index+1)
-            index = index+1
-            # create a list of instances to be add and commot to DB
-            bucket = list()
+            # print('Processing membership no. %d' % (index+1))
 
-            # get or create a user
-            user = create_or_get_user(membership_data)
-            bucket.append(user)
+            # preprocess a membership data in a model suitable
+            # form
+            m_data = preprocess_membership_data(membership_data)
+            # print(m_data)
 
-            # get or create a membership
-            membership = create_or_get_membership(membership_data, user)
+            # check user exists or not if not create user else get it's
+            # instance
+            user = User.create_or_get(**m_data['user'])
+            # print(user)
 
-            # check if membership ended or not and update it
-            if membership and membership_data['canceled_to']:
-                membership.canceled_to = membership_data['canceled_to']
+            # check membership exists or not if not create membership else
+            # get it's instance
+            membership = Membership.create_or_get(**m_data['membership'])
 
-            bucket.append(membership)
+            # assign a hub to this membership if not else do nothing
+            membership.assign_hub(hub)
 
-            # get or create plan
-            plan = create_or_get_plan(membership_data['plan'])
-            bucket.append(plan)
+            # assign a user to this membership if not else do nothing
+            membership.assign_user(user)
 
-            # get or create hub_plan
-            hub_plan = None
-            if is_new_plan(plan):
-                hub_plan = create_hub_plan(hub, plan)
-            else:
-                hub_plan = get_hub_plan_from_instances(hub, plan)
-            bucket.append(hub_plan)
+            # check plan exists or not if not create plan else get it's
+            # instance
+            plan = Plan.create_or_get(**m_data['plan'])
+            # print(plan)
 
-            # check if plan changed or not
+            # check hub_plan exists or not if not create hub_plan else get
+            # it's instance
+            context = {
+                'hub': hub,
+                'plan': plan
+            }
+            hub_plan = HubPlan.create_or_get(**context)
+            # print(hub_plan)
+
+            # check if plan of a membership changed or not
             if is_membership_plan_changed(membership, hub_plan):
-                # set end_date of last plan
+                # if plan changed then set end_date of last active plan of
+                # a membership as date_of_crawl, if any
                 last_membership_plan = set_end_date_of_last_membership_plan(
-                                membership, get_current_date())
+                                membership, date_of_crawl)
+                # print(last_membership_plan)
 
-                # check if last membership plan exist or not
-                if last_membership_plan:
-                    bucket.append(last_membership_plan)
+                # create a new membership plan instance
+                context = {
+                    'membership': membership,
+                    'hub_plan': hub_plan,
+                    'start_date': get_date_obj(date_of_crawl)
+                }
+
+                # and, also set `start_date` of membership plan depending upon
+                # last_membership_plan existence
+                if not last_membership_plan:
+                    context['start_date'] = \
+                        m_data['membership']['confirmed_at']
 
                 # create a new membership plan
-                membership_plan = create_membership_plan(membership, hub_plan)
-                bucket.append(membership_plan)
-
+                membership_plan = MembershipPlan.create(**context)
+                # print(membership_plan)
             else:
                 # nothing to do
                 pass
 
-            print '['
-            for item in bucket:
-                print '    ', item, '\n'
-            print ']\n'
-            # add bucket to DB session
-            add_to_db_session(bucket)
+            # check if membership ended or not and, if yes set cancele_to date
+            # of membership and also set end_date of last membership_plan of
+            # this membership_plan
+            membership.set_canceled_date(m_data['membership']['canceled_to'])
+            # print(membership)
 
-            # commit all changes to DB
-            commit_to_db()
+            # print('\n')
 
         except Exception:
             traceback.print_exc()
+            return
+
+    print('Total %d Memberships processed on %s\n' % (len(data),
+                                                      date_of_crawl))
 
 
-def get_data_from_file(filename):
-    """Get data from file"""
-    try:
-        with open(filename) as f:
-            data = json.load(f)
-        return data
-    except Exception:
-        traceback.print_exc()
+def get_data_from_api_of_hub(date, hub):
+    """
+    Get data of memberships plans from cobot api of a particular specified day
+    """
+    # check date should be in valid format(i.e YYYY-MM-DD)
+    if not is_date_in_valid_format(date):
+        return None
 
+    # check if hub instance is passed or not
+    if not isinstance(hub, Hub):
+        return None
 
-def get_data_from_api(date, hub=None, token=None):
-    """Get data from api"""
-    if not hub:
-        hub = {
-            'name': '91sgurgaon',
-            'location': 'Gurgaon'
-        }
+    token = 'Bearer %s' % (config.COBOT_TOKEN)
 
-    if not token:
-        token = 'Bearer %s' % (os.getenv('COBOT_TOKEN', None))
+    # create a API end-point url to get data
+    MEMBERSHIPS_URL = config.MEMBERSHIPS_URL_STR % (hub.name)
 
-    MEMBERSHIPS_URL = 'http://%s.cobot.me/api/memberships' % (hub['name'])
-
+    # set Authorization header field
     headers = {
         'Authorization': token
     }
+
+    # set arbitrary agruments to be passed with request
     params = {
         'as_of': date
     }
+
+    # call end-point, send request and collect response
     response = requests.get(MEMBERSHIPS_URL, headers=headers, params=params)
 
+    # if call was made successfully, return data in JSON format
     if response.status_code == 200:
+        print('Data returned from api successfully')
         data = response.json()
         return data
     else:
-        None
+        print('Status Code = %d' % (response.status_code))
+
+    return None
 
 
-def get_data_of_a_day(date, hub=None, token=None):
-    """Get Data of a particular given day"""
-    hub = {
-        'name': '91springboard',
-        'location': 'Okhla'
-    }
-    # data = get_data_from_file('app/dump-2015-09-01.json')
-    data = get_data_from_api(date, hub=None)
+def get_and_process_data_of_day(date):
+    """
+    Get data of a particular given day and also process that data
+    """
+    # check date should be in valid format(i.e YYYY-MM-DD)
+    if not is_date_in_valid_format(date):
+        return None
 
-    if hub:
-        process_data(hub, data)
-    else:
-        print 'Error in creating space entry.'
+    # get all hubs
+    hubs = Hub.get_all()
+
+    for hub in hubs:
+        # get data of a hub for a day
+        data = get_data_from_api_of_hub(date, hub=hub)
+
+        if data:
+            # process a data of a hub
+            process_data_of_hub(hub, data, date_of_crawl=date)
 
 
-def start_data_task():
-    """Start get data task"""
-    pass
+def start_data_task_of_day(date):
+    """
+    Start task to get data of a particular specified day from cobot api
+    and insert that data into database
+    """
+    crawl_date = get_date_obj(date)
+
+    # if crawl date is set then get data of crawl date and process it
+    return get_and_process_data_of_day(crawl_date.isoformat())
+
+
+def start_data_task_of_duration(s_date, e_date):
+    """
+    Start task to get data of a particular specified duration from cobot api
+    and insert that data into database
+    """
+    crawl_date = get_date_obj(s_date)
+    end_date = get_date_obj(e_date)
+
+    while (crawl_date <= end_date):
+        # get data of crawl date and process it
+        get_and_process_data_of_day(crawl_date.isoformat())
+
+        # increment crawl date by 1 day
+        crawl_date = increment_date(crawl_date, days=1)
+
+
+def get_and_set_member_report_metrices_of_hub_plan(hub_plan, date_str):
+    """
+    Calculate member report metrics for a given month from present data
+    in database
+    """
+    if not(isinstance(hub_plan, HubPlan)):
+        return None
+
+    # get start date of month
+    start_date_of_month = get_first_date_of_month(date_str)
+
+    # get end date of month
+    end_date_of_month = get_last_date_of_month(date_str)
+
+    # check time exists or not if not create time else get it's instance
+    time = Time.create_or_get(date=start_date_of_month)
+
+    # check member_report exists or not if not create member_report else
+    # get it's instance
+    member_report = MemberReport.create_or_get(time=time, hub_plan=hub_plan)
+
+    # reset all counters of member_report to be `0`, so that we can start
+    # with fresh member_report instance
+    member_report.reset_all_counter()
+
+    # get and set count of all new membership plans of a particular hub and
+    # plan within a given time frame(i.e here is for a month)
+    get_and_set_new_members_report_for_a_hub_plan(member_report,
+                                                  hub_plan,
+                                                  start_date_of_month,
+                                                  end_date_of_month)
+
+    # get and set count of all retain membership plans of a particular hub
+    # and plan within a given time frame(i.e here is for a month)
+    get_and_set_retain_members_report_for_a_hub_plan(member_report,
+                                                     hub_plan,
+                                                     start_date_of_month,
+                                                     end_date_of_month)
+
+    # get and set count of all leave membership plans of a particular hub
+    # and plan within a given time frame(i.e here is for a month)
+    get_and_set_leave_members_report_for_a_hub_plan(member_report,
+                                                    hub_plan,
+                                                    start_date_of_month,
+                                                    end_date_of_month)
+
+
+def calculate_member_report_metrices_of_a_month(date_str):
+    """
+    Calculate member report metrics for a given month from present data
+    in database for all hub_plan's
+    """
+    if not is_date_in_valid_format(date_str, '%Y-%m'):
+        return None
+
+    # get all plans of all hubs
+    hub_plans = HubPlan.get_all()
+
+    # calculate member report metrics for each plan of all hub
+    for hub_plan in hub_plans:
+        get_and_set_member_report_metrices_of_hub_plan(hub_plan, date_str)
+        # print('\n')
+
+
+def start_report_task_of_month(date_str):
+    """
+    Start task to calculate member report metrics of a particular given
+    month from data in database
+    """
+    return calculate_member_report_metrices_of_a_month(date_str)
+
+
+def start_report_task_of_duration(s_date, e_date):
+    """
+    Start task to calculate member report metrics of a particular given
+    duration from data in database
+    """
+    crawl_date = get_date_obj(get_first_date_of_month(s_date))
+    end_date = get_date_obj(get_last_date_of_month(e_date))
+
+    while (crawl_date <= end_date):
+        # get data of crawl date and process it
+        calculate_member_report_metrices_of_a_month(crawl_date.isoformat())
+
+        # increment crawl date by 1 day
+        crawl_date = increment_date(crawl_date, weeks=4)
+        print('Report processed on %s' % (crawl_date.isoformat()))
