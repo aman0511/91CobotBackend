@@ -53,7 +53,7 @@ class Hub(ModelMixin, db.Model):
 class Plan(ModelMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), index=True)
-    type = db.Column(db.Enum(PLAN_TYPES, name='plan_types'))
+    type = db.Column(db.Enum(*PLAN_TYPES, name='plan_types'))
     price = db.Column(db.Numeric(precision=20, scale=4))
 
     __fields__ = ['type', 'name', 'price']
