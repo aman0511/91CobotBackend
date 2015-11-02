@@ -76,13 +76,15 @@ def drop_db():
                 help="start date of crawl in 'YYYY-MM-DD' format")
 @manager.option('-ed', '--endDate', dest='end_date', default=None,
                 help="end date of crawl in 'YYYY-MM-DD' format")
-def run_task_data(start_date, end_date):
+@manager.option('-h', '--hub', dest='hub_name', default=None,
+                help="name of hub")
+def run_task_data(start_date, end_date, hub_name):
     """Runs a task to get and insert data from cobot api"""
     try:
         if start_date and end_date:
-            start_data_task_of_duration(start_date, end_date)
+            start_data_task_of_duration(start_date, end_date, hub_name)
         elif start_date:
-            start_data_task_of_day(start_date)
+            start_data_task_of_day(start_date, hub_name)
         else:
             print('Check argument options, type command with --help')
             return
@@ -96,13 +98,15 @@ def run_task_data(start_date, end_date):
                 help="start date of crawl in 'YYYY-MM' format")
 @manager.option('-ed', '--endDate', dest='end_date', default=None,
                 help="end date of crawl in 'YYYY-MM' format")
-def run_task_report(start_date, end_date):
+@manager.option('-h', '--hub', dest='hub_name', default=None,
+                help="name of hub")
+def run_task_report(start_date, end_date, hub_name):
     """Runs a task to calculate member report metrices from database data"""
     try:
         if start_date and end_date:
-            start_report_task_of_duration(start_date, end_date)
+            start_report_task_of_duration(start_date, end_date, hub_name)
         elif start_date:
-            start_report_task_of_month(start_date)
+            start_report_task_of_month(start_date, hub_name)
         else:
             print('Check argument options, type command with --help')
             return
