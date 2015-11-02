@@ -6,7 +6,7 @@
 # To run gunicorn by using this config, run gunicorn by passing
 # config file path, ex:
 #
-#       $ gunicorn --config=gunicorn.py MODULE_NAME:VARIABLE_NAME
+#       $ gunicorn --config=gunicorn-conf.py MODULE_NAME:VARIABLE_NAME
 #
 
 import multiprocessing

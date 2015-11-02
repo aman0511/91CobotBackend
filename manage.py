@@ -5,7 +5,8 @@ import sys
 import unittest
 import traceback
 from flask.ext.migrate import Migrate, MigrateCommand
-from flask.ext.script import Shell, Server, Manager, prompt_bool
+from flask.ext.script import (Shell, Server, Manager, Command,
+                              Option, prompt_bool)
 from flask.ext.script.commands import InvalidCommand
 from app import app, db, models
 from app.tasks import (start_data_task_of_day,
@@ -13,10 +14,35 @@ from app.tasks import (start_data_task_of_day,
                        start_report_task_of_month,
                        start_report_task_of_duration)
 
+
+class GunicornServer(Command):
+    """Run the app within Gunicorn"""
+
+    def get_options(self):
+        from gunicorn.config import make_settings
+
+        settings = make_settings()
+        options = (
+            Option(*klass.cli, action=klass.action)
+            for setting, klass in settings.iteritems() if klass.cli
+        )
+        return options
+
+    def run(self, *args, **kwargs):
+        from gunicorn.app.wsgiapp import WSGIApplication
+
+        app = WSGIApplication()
+        app.app_uri = 'manage:app'
+        return app.run()
+
+
 manager = Manager(app)
 
 # add `runserver` command to serve this app
 manager.add_command("runserver", Server())
+
+# add `gunicorn` command to run project within gunicorn
+manager.add_command("gunicorn", GunicornServer())
 
 # add `db` command to handle database migrations
 migrate = Migrate(app, db)
