@@ -3,17 +3,16 @@ from flask import url_for
 from app import app
 from app.models import (Hub,
                         Plan,
+                        Time,
                         HubPlan,
                         Membership,
                         MembershipPlan,
-                        Time,
                         MemberReport)
-from app.utils import (is_date_in_valid_format,
-                       get_date_obj,
+from app.utils import (get_date_obj,
                        decrement_date,
                        get_current_date,
                        get_first_date_of_month,
-                       get_last_date_of_month)
+                       is_date_in_valid_format)
 from sqlalchemy import and_, or_
 
 # Function to easily find your assets
@@ -39,8 +38,7 @@ def preprocess_membership_data(membership_data):
     # collect membership data
     res['membership'] = {
         'cobot_id': membership_data['id'],
-        'confirmed_at': get_date_obj(membership_data['confirmed_at']),
-        'canceled_to': get_date_obj(membership_data['canceled_to'])
+        'confirmed_at': get_date_obj(membership_data['confirmed_at'])
     }
 
     # collect plan data

@@ -1,41 +1,46 @@
-Cobot-Proto
+91cobot-Web-API
 ===========================
 
-This is the flask based prototype of cobot api for acquisition of memberships
-related data to a local database.
+A flask based web api for acquisition of memberships data from cobot and also calculate some required metrics from them to report analysis on monthly basis.
 
 ##Requirements
 1. Python `2.7+`
-2. `pip` installed
-3. virtualenv
+1. `pip` installed
+1. virtualenv
 
 ##Instructions
-1. Install all package dependencies by using `pip`
+1. First install some system dependency
+```bash
+    $ sudo apt-get install python-dev libssl-dev libffi-dev libmysqlclient-dev
+```
+
+1. Install all python package dependencies by using `pip`
 ```bash
     $ pip install -r requirements.txt 
 ```
 
-2. Also, set some required environment variables for this prototype
+1. Also, set some required environment variables for this prototype
 ```bash
+    $ export CONFIG='local'             # 'dev' for production
     $ export COBOT_DB_URL='<database-url>'
 ```
 
-3. To run application with simple flask server
+1. To run application with simple flask server
 ```bash
     $ python manage.py runserver
 ```
 
-4. To create database tables
+1. To create database tables
 ```bash
     $ python manage.py create_db
 ```
 
-5. To delete database tables
+1. To delete database tables
 ```bash
     $ python manage.py drop_db
 ```
 
-6. To do database schema migrations
+1. To do database schema migrations
 ```bash
     $ python manage.py db [command]
 
@@ -56,23 +61,33 @@ related data to a local database.
     history             List changeset scripts in chronological order.
     revision            Create a new revision file
 ```
-6. To run task which gets data from cobot api and add to database tables
-```bash
-    $ python manage.py run_task_data [-d DATE or --date=DATE]
-    # DATE should be in format 'YYYY-MM-DD'
-```
 
-7. To run task which calculate member report metrics and add to database tables
+1. To run task which gets data from cobot api and add that to database tables
 ```bash
-    $ python manage.py run_task_report [-d DATE or --date=DATE]
-    # DATE should be in format 'YYYY-MM'
+    $ python manage.py run_task_data [-sd START_DATE or --startDate=START_DATE]
+      [-ed END_DATE or --endDate=END_DATE] [ -h HUB_NAME or --hub=HUB_NAME]
+      
+      # DATE should be in format 'YYYY-MM-DD'
 ```
+    **Note:** To run task for a specific date, then you should only pass that date as `-sd or --startDate`.
 
-8. To run application within [guicorn](http://gunicorn.org/) server
+1. To run task which calculate member report metrics and append them to database tables
+```bash
+    $ python manage.py run_task_report [-sd START_DATE or --startDate=START_DATE]
+      [-ed END_DATE or --endDate=END_DATE] [ -h HUB_NAME or --hub=HUB_NAME]
+      
+      # DATE should be in format 'YYYY-MM'
+```
+    **Note:** To run task for a specific date, then you should only pass that date as `-sd or --startDate`.
+
+1. To run application within [guicorn](http://gunicorn.org/) server
 ```bash
     $ python manage.py gunicorn
+    # OR
+    $ python manage.py gunicorn -c gunicorn-conf.py
 ```
     This command also supports all gunicorn parameters
+
 
 ##Endpoints
 
@@ -152,5 +167,41 @@ By default, returns all member's report regarding all hubs
         
         /api/reports?hub_name=91sgurgaon&plan_type=Full Time&from=2015-03&to=2015-09
 
+
 #### Response
 Type - **JSON**
+
+```json
+    [
+        {
+            "hub_plan": {
+                "hub": {
+                    "name": "91springboard",
+                    "location": {
+                        "name": "Okhla"
+                    }
+                },
+                "plan": {
+                    "name": "Full Time (4+)",
+                    "type": "FULL-TIME",
+                    "price": 4999.00
+                }
+            },
+            "time": {
+                "month": 5,
+                "year": 2015,
+                "date": "2015-05"
+            },
+            "count": {
+                "new_member": 23,
+                "retain_member": 231,
+                "leave_member": 2
+            },
+            "revenue": {
+                "new_member": 114977.0000,
+                "retain_member": 1154769.0000,
+                "leave_member": 9998.0000
+            }
+        }
+    ]
+```
