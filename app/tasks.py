@@ -300,11 +300,14 @@ def start_report_task_of_duration(s_date, e_date, hub_name):
     end_date = get_date_obj(get_last_date_of_month(e_date))
 
     while (crawl_date <= end_date):
+        # convert crawl date of format `YYYY-MM-DD` to `YYYY-MM`
+        crawl_date_str = crawl_date.isoformat().rsplit('-', 1)[0]
+
         # get data of crawl date and process it
-        calculate_member_report_metrices_of_a_month(crawl_date.isoformat(),
-                                                    hub_name)
+        calculate_member_report_metrices_of_a_month(crawl_date_str, hub_name)
+
+        print('Report processed on %s\n' % (crawl_date_str))
 
         # increment crawl date by 1 day
         crawl_date = increment_date(crawl_date, weeks=4)
-        date_str = crawl_date.isoformat().rsplit('-', 1)[0]
-        print('Report processed on %s\n' % (date_str))
+
