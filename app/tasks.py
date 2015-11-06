@@ -279,6 +279,8 @@ def calculate_member_report_metrices_of_a_month(date_str, hub_name):
     for hub_plan in hub_plans:
         get_and_set_member_report_metrices_of_hub_plan(hub_plan, date_str)
 
+    print("Total %s plans of all hub processed." % (len(hub_plans)))
+
 
 def start_report_task_of_month(date_str, hub_name):
     """
@@ -286,8 +288,7 @@ def start_report_task_of_month(date_str, hub_name):
     month from data in database
     """
     print('Report processed on %s \n' % (date_str))
-    # return calculate_member_report_metrices_of_a_month(date_str, hub_name)
-
+    return calculate_member_report_metrices_of_a_month(date_str, hub_name)
 
 
 def start_report_task_of_duration(s_date, e_date, hub_name):
@@ -305,4 +306,5 @@ def start_report_task_of_duration(s_date, e_date, hub_name):
 
         # increment crawl date by 1 day
         crawl_date = increment_date(crawl_date, weeks=4)
-        print('Report processed on %s\n' % (crawl_date.isoformat()))
+        date_str = crawl_date.isoformat().rsplit('-', 1)[0]
+        print('Report processed on %s\n' % (date_str))
