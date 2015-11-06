@@ -36,8 +36,9 @@ def get_cards():
 
     # get data and create output of card 1
     present_active_members = get_cnt_of_active_members_in_past(hub, days=0)
-    new_members_in_past_months = get_cnt_of_new_members_in_past(days=30)
+    new_members_in_past_months = get_cnt_of_new_members_in_past(hub, days=30)
 
+    print present_active_members, new_members_in_past_months
     card_1 = OrderedDict()
     card_1["card_no"] = 1
     card_1['total_active_members'] = present_active_members
@@ -56,7 +57,7 @@ def get_cards():
     # get data and create output of card 3
     active_members_till_past_week = get_cnt_of_active_members_in_past(hub,
                                                                       days=7)
-    new_members_in_past_weeks = get_cnt_of_new_members_in_past(days=7)
+    new_members_in_past_weeks = get_cnt_of_new_members_in_past(hub, days=7)
 
     card_3 = OrderedDict()
     card_3["card_no"] = 3
@@ -69,7 +70,7 @@ def get_cards():
     res.append(card_3)
 
     # get data and create output of card 4
-    leave_members_in_past_weeks = get_cnt_of_leave_members_in_past(days=7)
+    leave_members_in_past_weeks = get_cnt_of_leave_members_in_past(hub, days=7)
 
     card_4 = OrderedDict()
     card_4["card_no"] = 4
