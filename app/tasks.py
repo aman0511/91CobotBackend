@@ -285,7 +285,9 @@ def start_report_task_of_month(date_str, hub_name):
     Start task to calculate member report metrics of a particular given
     month from data in database
     """
-    return calculate_member_report_metrices_of_a_month(date_str, hub_name)
+    print('Report processed on %s \n' % (date_str))
+    # return calculate_member_report_metrices_of_a_month(date_str, hub_name)
+
 
 
 def start_report_task_of_duration(s_date, e_date, hub_name):
@@ -303,4 +305,4 @@ def start_report_task_of_duration(s_date, e_date, hub_name):
 
         # increment crawl date by 1 day
         crawl_date = increment_date(crawl_date, weeks=4)
-        print('Report processed on %s' % (crawl_date.isoformat()))
+        print('Report processed on %s\n' % (crawl_date.isoformat()))
