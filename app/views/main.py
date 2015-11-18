@@ -10,13 +10,29 @@ from flask.ext.api import status
 from app.models import PLAN_TYPES, Hub
 from collections import OrderedDict
 from app.utils import is_date_in_valid_format
+from app import cache
+import urllib
 
 # create blueprint instance
 api = Blueprint('main', __name__, url_prefix='/api')
 
 
-# create views here
+def make_cache_key():
+    """
+    A function which returns a unique key to cache result on basis of url
+    arguments
+    """
+    args = request.args
+    cache_key = request.path + '?' + urllib.urlencode([
+        (k, v) for k in sorted(args) for v in sorted(args.getlist(k))
+    ])
+    print "Request Url: %s" % (request.url)
+    print "Key:: %s" % (cache_key)
+    return cache_key
+
+
 @api.route("/cards", methods=['GET'])
+@cache.cached(key_prefix=make_cache_key)
 def get_cards():
     # extract hub_name` argument from request
     hub_name = request.args.get('hub_name', None)
@@ -87,6 +103,7 @@ def get_cards():
 
 
 @api.route("/reports", methods=['GET'])
+@cache.cached(key_prefix=make_cache_key)
 def get_reports():
     # extract hub_name` argument from request
     hub_name = request.args.get('hub_name', None)
