@@ -13,6 +13,7 @@ from app.tasks import (start_data_task_of_day,
                        start_data_task_of_duration,
                        start_report_task_of_month,
                        start_report_task_of_duration)
+import urllib
 
 
 class GunicornServer(Command):
@@ -54,6 +55,20 @@ def _make_context():
     return dict(app=app, db=db, models=models)
 
 manager.add_command("shell", Shell(make_context=_make_context))
+
+
+@manager.command
+def list_routes():
+    """List all routes in current flask application"""
+    output = []
+    for rule in app.url_map.iter_rules():
+        methods = ','.join(rule.methods)
+        line = urllib.unquote("{:50s} {:20s} {}".format(rule.endpoint,
+                                                        methods, rule))
+        output.append(line)
+
+    for line in sorted(output):
+        print(line)
 
 
 @manager.command

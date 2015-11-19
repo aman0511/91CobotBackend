@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import logging
 from logging.handlers import RotatingFileHandler
 from app import app
