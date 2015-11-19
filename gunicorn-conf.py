@@ -6,17 +6,24 @@
 # To run gunicorn by using this config, run gunicorn by passing
 # config file path, ex:
 #
-#       $ gunicorn --config=gunicorn-conf.py MODULE_NAME:VARIABLE_NAME
+#       $ gunicorn --config=gunicorn.py MODULE_NAME:VARIABLE_NAME
 #
 
+import os
 import multiprocessing
+
+# Constants
+BASE_LOG_PATH = os.environ.get("CB91_GUNICORN_LOG_PATH", None)
+ACCESS_LOG_FILE = BASE_LOG_PATH + "/91cobotbackend-access.log"
+ERROR_LOG_FILE = BASE_LOG_PATH + "/91cobotbackend-error.log"
+
 
 # ===============================================
 #           Server Socket
 # ===============================================
 
 # bind - The server socket to bind
-bind = "127.0.0.1:8000"
+bind = "0.0.0.0:3000"
 
 # backlog - The maximum number of pending connections
 # Generally in range 64-2048
@@ -46,7 +53,7 @@ worker_class = 'sync'
 # threads - The number of worker threads for handling requests. This will
 # run each worker with the specified number of threads.
 # A positive integer generally in the 2-4 x $(NUM_CORES) range
-threads = 1
+threads = multiprocessing.cpu_count() * 2 + 1
 
 # worker_connections - The maximum number of simultaneous clients
 # This setting only affects the Eventlet and Gevent worker types.
@@ -107,7 +114,7 @@ limit_request_field_size = 8190
 # ===============================================
 
 # reload - Restart workers when code changes
-reload = False
+reload = True
 
 # spew - Install a trace function that spews every line executed by the server
 spew = False
@@ -125,7 +132,7 @@ check_config = False
 # speed up server boot times. Although, if you defer application loading to
 # each worker process, you can reload your application code easily by
 # restarting workers.
-preload = False
+preload = True
 
 # sendfile - Enables or disables the use of sendfile()
 sendfile = True
@@ -241,7 +248,7 @@ ciphers = "TLSv1"
 
 # accesslog - The Access log file to write to.
 # “-” means log to stderr.
-access_logfile = None
+accesslog = ACCESS_LOG_FILE
 
 # access_log_format - The access log format
 #
@@ -268,7 +275,7 @@ access_logformat = '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" \
 
 # errorlog - The Error log file to write to.
 # “-” means log to stderr.
-error_logfile = "-"
+errorlog = ERROR_LOG_FILE
 
 # loglevel - The granularity of Error log outputs.
 # Valid level names are:
@@ -277,7 +284,7 @@ error_logfile = "-"
 # 3. warning
 # 4. error
 # 5. critical
-log_level = "info"
+log_level = "critical"
 
 # logger_class - The logger you want to use to log events in gunicorn.
 # The default class (gunicorn.glogging.Logger) handle most of normal usages
@@ -331,7 +338,7 @@ statsd_host = None
 # proc_name - A base to use with setproctitle for process naming.
 # This affects things like `ps` and `top`.
 # It defaults to ‘gunicorn’.
-name = None
+name = "91cobotfrontend"
 
 
 # ===============================================
@@ -346,6 +353,7 @@ def on_starting(server):
     """
     pass
 
+
 def on_reload(server):
     """
     Called to recycle workers during a reload via SIGHUP.
@@ -354,6 +362,7 @@ def on_reload(server):
     """
     pass
 
+
 def when_ready(server):
     """
     Called just after the server is started.
@@ -361,6 +370,7 @@ def when_ready(server):
     The callable needs to accept a single instance variable for the Arbiter.
     """
     pass
+
 
 def pre_fork(server, worker):
     """
@@ -371,6 +381,7 @@ def pre_fork(server, worker):
     """
     pass
 
+
 def post_fork(server, worker):
     """
     Called just after a worker has been forked.
@@ -379,6 +390,7 @@ def post_fork(server, worker):
     new Worker.
     """
     pass
+
 
 def post_worker_init(worker):
     """
@@ -389,6 +401,7 @@ def post_worker_init(worker):
     """
     pass
 
+
 def worker_init(worker):
     """
     Called just after a worker exited on SIGINT or SIGQUIT.
@@ -397,6 +410,7 @@ def worker_init(worker):
     Worker.
     """
     pass
+
 
 def worker_abort(worker):
     """
@@ -408,6 +422,7 @@ def worker_abort(worker):
     """
     pass
 
+
 def pre_exec(server):
     """
     Called just before a new master process is forked.
@@ -415,6 +430,7 @@ def pre_exec(server):
     The callable needs to accept a single instance variable for the Arbiter.
     """
     pass
+
 
 def pre_request(worker, req):
     """
@@ -425,6 +441,7 @@ def pre_request(worker, req):
     """
     worker.log.debug("%s %s" % (req.method, req.path))
 
+
 def post_request(worker, req, environ, resp):
     """
     Called after a worker processes the request.
@@ -434,6 +451,7 @@ def post_request(worker, req, environ, resp):
     """
     pass
 
+
 def worker_exit(server, worker):
     """
     Called just after a worker has been exited.
@@ -442,6 +460,7 @@ def worker_exit(server, worker):
     the just-exited Worker.
     """
     pass
+
 
 def nworkers_changed(server, new_value, old_value):
     """
@@ -454,6 +473,7 @@ def nworkers_changed(server, new_value, old_value):
     None.
     """
     pass
+
 
 def on_exit(server):
     """

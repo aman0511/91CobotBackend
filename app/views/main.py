@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
-from flask import Blueprint, request
+from flask import Blueprint, request, abort
 from app.helpers import (get_cnt_of_active_members_in_past,
                          get_cnt_of_new_members_in_past,
                          get_cnt_of_leave_members_in_past,
@@ -10,7 +10,7 @@ from flask.ext.api import status
 from app.models import PLAN_TYPES, Hub
 from collections import OrderedDict
 from app.utils import is_date_in_valid_format
-from app import cache
+from app import app, cache
 import urllib
 
 # create blueprint instance
@@ -26,8 +26,8 @@ def make_cache_key():
     cache_key = request.path + '?' + urllib.urlencode([
         (k, v) for k in sorted(args) for v in sorted(args.getlist(k))
     ])
-    print "Request Url: %s" % (request.url)
-    print "Key:: %s" % (cache_key)
+    app.logger.debug("Request Url: %s" % (request.url))
+    app.logger.debug("Key:: %s" % (cache_key))
     return cache_key
 
 
@@ -151,4 +151,13 @@ def get_reports():
     for mr in m_reports:
         res.append(mr.serialize())
 
-    return res
+    return (res, status.HTTP_200_OK)
+
+
+@app.errorhandler(500)
+def internal_error(exception):
+    app.logger.error(exception)
+    res = {
+        "error": "Service temporarily unavailable, try again later."
+    }
+    return (res, status.HTTP_500_INTERNAL_SERVER_ERROR)

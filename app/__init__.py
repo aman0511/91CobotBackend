@@ -7,7 +7,7 @@ from flask.ext.cache import Cache
 app = FlaskAPI(__name__)
 
 # Check Configuring Flask-Cache section for more details
-cache = Cache(app,config={'CACHE_TYPE': 'simple'})
+cache = Cache(app, config={'CACHE_TYPE': 'simple'})
 
 # create SQLAlchemy instance
 db = SQLAlchemy(app)
@@ -23,3 +23,6 @@ from app import models
 
 # import views
 from app import views
+
+# import logger
+from app import logger
