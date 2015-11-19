@@ -1,20 +1,20 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
-from flask import Blueprint, request, abort
+from flask import Blueprint, request
+from flask.ext.api import status
+from app.models import PLAN_TYPES, Hub
+from collections import OrderedDict
+from app import app, cache
+from app.utils import is_date_in_valid_format
 from app.helpers import (get_cnt_of_active_members_in_past,
                          get_cnt_of_new_members_in_past,
                          get_cnt_of_leave_members_in_past,
                          get_all_hub_plans_of_plan_type,
                          get_all_member_reports_of_hub_plans)
-from flask.ext.api import status
-from app.models import PLAN_TYPES, Hub
-from collections import OrderedDict
-from app.utils import is_date_in_valid_format
-from app import app, cache
 import urllib
 
 # create blueprint instance
-api = Blueprint('main', __name__, url_prefix='/api')
+api = Blueprint('API', __name__, url_prefix='/api')
 
 
 def make_cache_key():
