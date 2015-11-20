@@ -10,83 +10,85 @@ A flask based web api for acquisition of memberships data from cobot and also ca
 
 ##Instructions
 1. First install some system dependency
-```bash
-    $ sudo apt-get install python-dev libssl-dev libffi-dev libmysqlclient-dev
-```
+    ```bash
+        $ sudo apt-get install python-dev libssl-dev libffi-dev libmysqlclient-dev
+    ```
 
 1. Install all python package dependencies by using `pip`
-```bash
-    $ pip install -r requirements.txt 
-```
+    ```bash
+        $ pip install -r requirements.txt 
+    ```
 
 1. Also, set some required environment variables for this prototype
-```bash
-    $ export CONFIG='local'             # 'dev' for production
-    $ export COBOT_DB_URL='<database-url>'
-```
+    ```bash
+        $ export CONFIG='local'             # 'dev' for production
+        $ export COBOT_DB_URL='<database-url>'
+    ```
 
 1. To run application with simple flask server
-```bash
-    $ python manage.py runserver
-```
+    ```bash
+        $ python manage.py runserver
+    ```
 
 1. To create database tables
-```bash
-    $ python manage.py create_db
-```
+    ```bash
+        $ python manage.py create_db
+    ```
 
 1. To delete database tables
-```bash
-    $ python manage.py drop_db
-```
+    ```bash
+        $ python manage.py drop_db
+    ```
 
 1. To do database schema migrations
-```bash
-    $ python manage.py db [command]
+    ```bash
+        $ python manage.py db [command]
 
-    where command can be any of these {upgrade,heads,merge,migrate,stamp,show,current,edit,init,downgrade,branches,history,revision}
-    upgrade             Upgrade to a later version
-    heads               Show current available heads in the script directory
-    merge               Merge two revisions together. Creates a new migration
-                        file
-    migrate             Alias for 'revision --autogenerate'
-    stamp               'stamp' the revision table with the given revision;
-                        don't run any migrations
-    show                Show the revision denoted by the given symbol.
-    current             Display the current revision for each database.
-    edit                Upgrade to a later version
-    init                Generates a new migration
-    downgrade           Revert to a previous version
-    branches            Show current branch points
-    history             List changeset scripts in chronological order.
-    revision            Create a new revision file
-```
+        where command can be any of these {upgrade,heads,merge,migrate,stamp,show,current,edit,init,downgrade,branches,history,revision}
+        upgrade             Upgrade to a later version
+        heads               Show current available heads in the script directory
+        merge               Merge two revisions together. Creates a new migration
+                            file
+        migrate             Alias for 'revision --autogenerate'
+        stamp               'stamp' the revision table with the given revision;
+                            don't run any migrations
+        show                Show the revision denoted by the given symbol.
+        current             Display the current revision for each database.
+        edit                Upgrade to a later version
+        init                Generates a new migration
+        downgrade           Revert to a previous version
+        branches            Show current branch points
+        history             List changeset scripts in chronological order.
+        revision            Create a new revision file
+    ```
 
 1. To run task which gets data from cobot api and add that to database tables
-```bash
-    $ python manage.py run_task_data [-sd START_DATE or --startDate=START_DATE]
-      [-ed END_DATE or --endDate=END_DATE] [ -h HUB_NAME or --hub=HUB_NAME]
-      
-      # DATE should be in format 'YYYY-MM-DD'
-```
-    **Note:** To run task for a specific date, then you should only pass that date as `-sd or --startDate`.
+    ```bash
+        $ python manage.py run_task_data [-sd START_DATE or --startDate=START_DATE]
+          [-ed END_DATE or --endDate=END_DATE] [ -h HUB_NAME or --hub=HUB_NAME]
+          
+          # DATE should be in format 'YYYY-MM-DD'
+    ```
+    **Note:** To run task for a specific date, then you should only pass that date
+    as `-sd or --startDate`.
 
 1. To run task which calculate member report metrics and append them to database tables
-```bash
-    $ python manage.py run_task_report [-sd START_DATE or --startDate=START_DATE]
-      [-ed END_DATE or --endDate=END_DATE] [ -h HUB_NAME or --hub=HUB_NAME]
-      
-      # DATE should be in format 'YYYY-MM'
-```
-    **Note:** To run task for a specific date, then you should only pass that date as `-sd or --startDate`.
+    ```bash
+        $ python manage.py run_task_report [-sd START_DATE or --startDate=START_DATE]
+          [-ed END_DATE or --endDate=END_DATE] [ -h HUB_NAME or --hub=HUB_NAME]
+          
+          # DATE should be in format 'YYYY-MM'
+    ```
+    **Note:** To run task for a specific date, then you should only pass that date
+    as `-sd or --startDate`.
 
 1. To run application within [guicorn](http://gunicorn.org/) server
-```bash
-    $ python manage.py gunicorn
-    # OR
-    $ python manage.py gunicorn -c gunicorn-conf.py
-```
-    This command also supports all gunicorn parameters
+    ```bash
+        $ python manage.py gunicorn
+        # OR
+        $ python manage.py gunicorn -c gunicorn-conf.py
+    ```
+    **Note:** This command also supports all gunicorn parameters
 
 
 ##Endpoints
