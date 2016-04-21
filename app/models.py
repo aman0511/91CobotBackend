@@ -7,21 +7,22 @@ from app.mixins import ModelMixin
 PLAN_TYPES = ('Full Time', 'Part Time', 'Others', 'Ignore')
 
 
-class User(ModelMixin, db.Model):
+class User(ModelMixin):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), index=True)
+    name = db.Column(db.String(100))
     email = db.Column(db.String(100), index=True)
+    cobot_id = db.Column(db.String(100), index=True)
 
-    __fields__ = ['name', 'email']
+    __fields__ = ['name', 'email', 'cobot_id']
 
     def __init__(self, *args, **kwargs):
         super(User, self).__init__(*args, **kwargs)
 
     def __repr__(self):
-        return '<User %r>' % (self.name)
+        return '<User %r>' % self.name
 
 
-class Location(ModelMixin, db.Model):
+class Location(ModelMixin):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), index=True, unique=True)
 
@@ -31,10 +32,10 @@ class Location(ModelMixin, db.Model):
         super(Location, self).__init__(*args, **kwargs)
 
     def __repr__(self):
-        return '<Location %s>' % (self.name)
+        return '<Location %s>' % self.name
 
 
-class Hub(ModelMixin, db.Model):
+class Hub(ModelMixin):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), index=True, unique=True)
     location_id = db.Column(db.Integer, db.ForeignKey('location.id'))
@@ -50,7 +51,7 @@ class Hub(ModelMixin, db.Model):
         return '<Hub %s %s>' % (self.name, self.location)
 
 
-class Plan(ModelMixin, db.Model):
+class Plan(ModelMixin):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), index=True)
     type = db.Column(db.Enum(*PLAN_TYPES, name='plan_types'))
@@ -62,10 +63,10 @@ class Plan(ModelMixin, db.Model):
         super(Plan, self).__init__(*args, **kwargs)
 
     def __repr__(self):
-        return '<Plan %s>' % (self.name)
+        return '<Plan %s>' % self.name
 
 
-class HubPlan(ModelMixin, db.Model):
+class HubPlan(ModelMixin):
     id = db.Column(db.Integer, primary_key=True)
     hub_id = db.Column(db.Integer, db.ForeignKey('hub.id'))
     hub = db.relationship('Hub',
@@ -84,7 +85,7 @@ class HubPlan(ModelMixin, db.Model):
         return '<HubPlan %s %s>' % (self.hub.name, self.plan.name)
 
 
-class Membership(ModelMixin, db.Model):
+class Membership(ModelMixin):
     id = db.Column(db.Integer, primary_key=True)
     cobot_id = db.Column(db.String(50), index=True, unique=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
@@ -150,7 +151,7 @@ class Membership(ModelMixin, db.Model):
         return self.last_membership_plan
 
 
-class MembershipPlan(ModelMixin, db.Model):
+class MembershipPlan(ModelMixin):
     id = db.Column(db.Integer, primary_key=True)
     hub_plan_id = db.Column(db.Integer, db.ForeignKey('hub_plan.id'))
     hub_plan = db.relationship('HubPlan',
@@ -177,7 +178,7 @@ class MembershipPlan(ModelMixin, db.Model):
             self.save()
 
 
-class Time(ModelMixin, db.Model):
+class Time(ModelMixin):
     id = db.Column(db.Integer, primary_key=True)
     year = db.Column(db.Integer)
     month = db.Column(db.Integer)
@@ -193,10 +194,10 @@ class Time(ModelMixin, db.Model):
         self.save()
 
     def __repr__(self):
-        return '<Time %s>' % (self.date)
+        return '<Time %s>' % self.date
 
 
-class MemberReport(ModelMixin, db.Model):
+class MemberReport(ModelMixin):
     id = db.Column(db.Integer, primary_key=True)
     time_id = db.Column(db.Integer, db.ForeignKey('time.id'))
     time = db.relationship('Time',

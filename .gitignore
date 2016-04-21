@@ -6,3 +6,9 @@ venv
 
 # dump files
 *.json
+
+# Sqlalchemy migrations
+migrations
+
+# log files
+*.log

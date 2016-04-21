@@ -1,24 +1,37 @@
 # -*- coding: utf-8 -*-
+# Standard Library Imports
 import logging
+import os
 from logging.handlers import RotatingFileHandler
-from app import app
 
-# specify format for log
-formatter = logging.Formatter(
-        "[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s")
+# Third Party Imports
+import config as conf
 
-# logging handler
-fileHandler = RotatingFileHandler(app.config['LOG_FILE'],
-                                  maxBytes=1024 * 1024 * 100,
-                                  backupCount=20)
+# Local Imports
 
-# set logging level for logger
-fileHandler.setLevel(logging.ERROR)
+# create logger
+logger = logging.getLogger("api")
+logger.setLevel(logging.DEBUG)
 
-# set formatter for logger
-fileHandler.setFormatter(formatter)
+# create file handler which logs even debug messages
+LOG_PATH = getattr(conf, "LOG_FILE_PATH") or os.getcwd()
+FILE_PATH = LOG_PATH + '/91cobotbackend-app-access.log'
+fh = RotatingFileHandler(FILE_PATH, maxBytes=5242880)
+fh.setLevel(logging.DEBUG)
 
-# check if DEBUG=True is set or not
-if app.debug is not True:
-    # add logger if debug mode is off
-    app.logger.addHandler(fileHandler)
+# create console handler and set level to debug
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+
+# create formatter
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - '
+                              '%(funcName)s - %(message)s',
+                              datefmt='%m-%d-%Y %I:%M:%S %p')
+
+# add formatter to handlers
+ch.setFormatter(formatter)
+fh.setFormatter(formatter)
+
+# add handlers to logger
+logger.addHandler(ch)
+logger.addHandler(fh)
