@@ -23,6 +23,8 @@ A flask based web api for acquisition of memberships data from cobot and also ca
     ```bash
         $ export CONFIG='local'             # 'dev' for production
         $ export COBOT_DB_URL='<database-url>'
+        $ export COBOT_TOKEN='<cobot-access-token>'
+        $ export LOG_FILE_PATH='<log-file-folder-path>'
     ```
 
 1. To run application with simple flask server

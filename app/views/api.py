@@ -5,7 +5,7 @@ from flask.ext.api import status
 from app.models import PLAN_TYPES, Hub
 from collections import OrderedDict
 from app import app, cache
-from app.utils import is_date_in_valid_format
+from app.utils import is_date_format_valid
 from app.helpers import (get_cnt_of_active_members_in_past,
                          get_cnt_of_new_members_in_past,
                          get_cnt_of_leave_members_in_past,
@@ -133,8 +133,8 @@ def get_reports():
                     status.HTTP_400_BAD_REQUEST)
 
     if from_d or to_d:
-        if not (is_date_in_valid_format(from_d, '%Y-%m') or
-                is_date_in_valid_format(to_d, '%Y-%m')):
+        if not (is_date_format_valid(from_d, '%Y-%m') or
+                is_date_format_valid(to_d, '%Y-%m')):
             return ({'error': 'Date should be in YYYY-MM format'},
                     status.HTTP_400_BAD_REQUEST)
 

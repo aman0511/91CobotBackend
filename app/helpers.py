@@ -8,11 +8,11 @@ from app.models import (Hub,
                         Membership,
                         MembershipPlan,
                         MemberReport)
-from app.utils import (get_date_obj,
+from app.utils import (get_date_obj_from_str,
                        decrement_date,
-                       get_current_date,
+                       get_current_date_obj,
                        get_first_date_of_month,
-                       is_date_in_valid_format)
+                       is_date_format_valid)
 from sqlalchemy import and_, or_
 
 # Function to easily find your assets
@@ -30,21 +30,25 @@ def preprocess_membership_data(membership_data):
 
     # collect user data
     res['user'] = {
-        'name': membership_data['name'],
-        'email': membership_data['email'] if membership_data['email']
-        else None
+        'name': membership_data.get('name', None),
+        'email': membership_data.get('email', None) if
+        membership_data.get('email', None) else None,
+        'cobot_id': membership_data.get("user", {}).get('id', None)
     }
 
     # collect membership data
     res['membership'] = {
-        'cobot_id': membership_data['id'],
-        'confirmed_at': get_date_obj(membership_data['confirmed_at'])
+        'cobot_id': membership_data.get('id', None),
+        'confirmed_at': get_date_obj_from_str(
+            membership_data.get('confirmed_at', None)
+        )
     }
 
     # collect plan data
     res['plan'] = {
-        'name': membership_data['plan']['name'].strip(),
-        'price': membership_data['plan']['total_price_per_cycle']
+        'name': membership_data.get('plan', {}).get('name', "").strip(),
+        'price': membership_data.get('plan', {}).get(
+            'total_price_per_cycle', None)
     }
 
     return res
@@ -73,7 +77,7 @@ def set_end_date_of_last_membership_plan(membership, end_date=None):
     if isinstance(membership, Membership):
         last_membership_plan = membership.get_last_membership_plan()
         if last_membership_plan:
-            last_membership_plan.set_end_date(get_date_obj(end_date))
+            last_membership_plan.set_end_date(get_date_obj_from_str(end_date))
         return last_membership_plan
     return None
 
@@ -83,7 +87,7 @@ def get_cnt_of_active_members_in_past(hub=None, days=0):
     Returns a number of active members in a hub on a given date
     date should be in `YYYY-MM-DD` format.
     """
-    base_date = decrement_date(get_current_date(), days=-days).isoformat()
+    base_date = decrement_date(get_current_date_obj(), days=-days).isoformat()
 
     query = or_(Membership.canceled_to == None,
                 Membership.canceled_to >= base_date)
@@ -99,7 +103,7 @@ def get_cnt_of_new_members_in_past(hub=None, days=30):
     """
     Returns a count of a new members in a given past days
     """
-    base_date = decrement_date(get_current_date(), days=-days).isoformat()
+    base_date = decrement_date(get_current_date_obj(), days=-days).isoformat()
 
     query = and_(Membership.confirmed_at >= base_date)
 
@@ -114,7 +118,7 @@ def get_cnt_of_leave_members_in_past(hub=None, days=30):
     """
     Returns a count of a leave members in a given past days
     """
-    base_date = decrement_date(get_current_date(), days=-days).isoformat()
+    base_date = decrement_date(get_current_date_obj(), days=-days).isoformat()
 
     query = and_(Membership.canceled_to >= base_date)
 
@@ -158,11 +162,11 @@ def get_all_member_reports_of_hub_plans(hub_plans, from_d=None, to_d=None):
 
     query = and_(MemberReport.hub_plan_id.in_(hub_plan_ids))
 
-    if is_date_in_valid_format(from_d, '%Y-%m'):
+    if is_date_format_valid(from_d, '%Y-%m'):
             date_str = get_first_date_of_month(from_d)
             query = and_(query, MemberReport.time.has(Time.date >= date_str))
 
-    if is_date_in_valid_format(to_d, '%Y-%m'):
+    if is_date_format_valid(to_d, '%Y-%m'):
             date_str = get_first_date_of_month(to_d)
             query = and_(query, MemberReport.time.has(Time.date <= date_str))
 

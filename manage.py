@@ -1,14 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import print_function
 import sys
-import unittest
 import traceback
 from flask.ext.migrate import Migrate, MigrateCommand
 from flask.ext.script import (Shell, Server, Manager, Command,
                               Option, prompt_bool)
 from flask.ext.script.commands import InvalidCommand
-from app import app, db, models
+from app import app
+from app.models import *
 from app.tasks import (start_data_task_of_day,
                        start_data_task_of_duration,
                        start_report_task_of_month,
@@ -25,7 +24,7 @@ class GunicornServer(Command):
         settings = make_settings()
         options = (
             Option(*klass.cli, action=klass.action)
-            for setting, klass in settings.iteritems() if klass.cli
+            for setting, klass in settings.items() if klass.cli
         )
         return options
 
@@ -51,10 +50,7 @@ manager.add_command('db', MigrateCommand)
 
 
 # add shell command to open python shell
-def _make_context():
-    return dict(app=app, db=db, models=models)
-
-manager.add_command("shell", Shell(make_context=_make_context))
+manager.add_command("shell", Shell())
 
 
 @manager.command
@@ -68,7 +64,7 @@ def list_routes():
         output.append(line)
 
     for line in sorted(output):
-        print(line)
+        print line
 
 
 @manager.command
@@ -76,7 +72,7 @@ def create_db():
     """Creates database tables from sqlalchemy models"""
     if prompt_bool("Are you sure you want to create new tables"):
         db.create_all()
-        print('Database tables successfully created.')
+        print 'Database tables successfully created.'
 
 
 @manager.command
@@ -84,7 +80,32 @@ def drop_db():
     """Drops database tables"""
     if prompt_bool("Are you sure you want to lose all your data"):
         db.drop_all()
-        print('Database tables successfully dropped.')
+        print 'Database tables successfully dropped.'
+
+
+@manager.command
+def fill_db():
+    """Drops database tables"""
+    drop_db()
+    db.create_all()
+
+    # create a Locations
+    bangalore = Location.create(name="Bangalore")
+    gurgaon = Location.create(name="Gurgaon")
+    hyderabad = Location.create(name="Hyderabad")
+    navi_mumbai = Location.create(name="Navi Mumbai")
+    noida = Location.create(name="Noida")
+    delhi = Location.create(name="Delhi")
+
+    # create hubs
+    Hub.create(name="91sblrst1", location=bangalore)
+    Hub.create(name="91sgurgaon", location=gurgaon)
+    Hub.create(name="91shyderabad", location=hyderabad)
+    Hub.create(name="91smumbai", location=navi_mumbai)
+    Hub.create(name="91snoida", location=noida)
+    Hub.create(name="91springboard", location=delhi)
+
+    print 'Data filled to tables successfully.'
 
 
 @manager.option('-sd', '--startDate', dest='start_date', default=None,
@@ -101,10 +122,10 @@ def run_task_data(start_date, end_date, hub_name):
         elif start_date:
             start_data_task_of_day(start_date, hub_name)
         else:
-            print('Check argument options, type command with --help')
+            print 'Check argument options, type command with --help'
             return
 
-        print('===> Task Completed')
+        print '===> Task Completed'
     except Exception:
         traceback.print_exc()
 
@@ -116,35 +137,23 @@ def run_task_data(start_date, end_date, hub_name):
 @manager.option('-h', '--hub', dest='hub_name', default=None,
                 help="name of hub")
 def run_task_report(start_date, end_date, hub_name):
-    """Runs a task to calculate member report metrices from database data"""
+    """Runs a task to calculate member report metrics from database data"""
     try:
         if start_date and end_date:
             start_report_task_of_duration(start_date, end_date, hub_name)
         elif start_date:
             start_report_task_of_month(start_date, hub_name)
         else:
-            print('Check argument options, type command with --help')
+            print 'Check argument options, type command with --help'
             return
 
-        print('===> Task Completed')
+        print '===> Task Completed'
     except Exception:
         traceback.print_exc()
-
-
-@manager.command
-def test():
-    """Runs the unit tests"""
-    tests = unittest.TestLoader().discover('tests')
-    result = unittest.TextTestRunner(verbosity=2).run(tests)
-    if result.wasSuccessful():
-        return 0
-    else:
-        return 1
 
 
 if __name__ == '__main__':
     try:
         manager.run()
     except InvalidCommand as err:
-        print(err, file=sys.stderr)
         sys.exit(1)

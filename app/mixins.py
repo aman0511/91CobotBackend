@@ -3,20 +3,19 @@
 A model mixin class have some basic functions which provide extra
 functionality to model class
 """
-from app import db
-
-
 import traceback
+from app import db
 from collections import OrderedDict
 from decimal import Decimal
 from datetime import datetime, date
 from sqlalchemy.ext.declarative import DeclarativeMeta
 
 
-class ModelMixin(object):
+class ModelMixin(db.Model):
     """
     Defines the general purpose functions for models
     """
+    __abstract__ = True
     # sqlalchemy database application instance
     __db__ = db
 
@@ -153,7 +152,7 @@ class ModelMixin(object):
         Deserialize data into model attributes and return it's instance
         :parm data(dict): contains all the fields that will be updated
          for the entity as keys
-        return: Entity object crosspoding to given id
+        return: Entity object corresponding to given id
         """
         return cls()._set_fields(**data)
 
@@ -171,7 +170,7 @@ class ModelMixin(object):
     def filter_by(cls, **kwargs):
         """
         Return a filtered results
-        :param **kwargs: filter parameters
+        :param kwargs: filter parameters
         """
         try:
             return cls.query.filter_by(**kwargs)
@@ -183,7 +182,7 @@ class ModelMixin(object):
         """
         Returns a list of instances filtered by the specified keyword
         arguments.
-        :param **kwargs: filter parameters
+        :param kwargs: filter parameters
         """
         try:
             if len(criterion):
@@ -200,7 +199,7 @@ class ModelMixin(object):
         """
         Returns the first instance found of the service's model filtered
         by the specified key word arguments.
-        :param **kwargs: filter parameters
+        :param kwargs: filter parameters
         """
         try:
             if len(criterion):
@@ -230,7 +229,7 @@ class ModelMixin(object):
         """
         Returns the first instance found of the service's model filtered
         by the specified key word arguments.
-        :param **kwargs: filter parameters
+        :param kwargs: filter parameters
         """
         return cls.first(**kwargs)
 
@@ -246,7 +245,7 @@ class ModelMixin(object):
         """
         Returns model instance of given id
         :parm id: id of the requested model
-        return: model instance crosspoding to given id
+        return: model instance corresponding to given id
         """
         return cls.first(**{'id': id})
 
