@@ -200,9 +200,9 @@ def get_and_process_data_of_day(date_str, hub_name):
         # get data of a hub for a day
         data = get_data_from_api_of_hub(date_str, hub=hub)
 
-        # if data:
-        #     # process a data of a hub
-        #     process_data_of_hub(hub, data, date_of_crawl=date_str)
+        if data:
+            # process a data of a hub
+            process_data_of_hub(hub, data, date_of_crawl=date_str)
 
 
 def start_data_task_of_day(date_str, hub_name):
