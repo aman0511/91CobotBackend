@@ -28,13 +28,14 @@ def preprocess_membership_data(membership_data):
     """
     res = dict()
 
-    user = membership_data.get("user", {'id': None})
+    user = membership_data.get("user", None)
+    plan = membership_data.get('plan', None)
 
     # collect user data
     res['user'] = {
         'name': membership_data.get('name', None),
         'email':  membership_data.get('email', None),
-        'cobot_id': user.get('id', None)
+        'cobot_id': user.get('id', None) if user else None
     }
 
     # collect membership data
@@ -47,9 +48,8 @@ def preprocess_membership_data(membership_data):
 
     # collect plan data
     res['plan'] = {
-        'name': membership_data.get('plan', {}).get('name', "").strip(),
-        'price': membership_data.get('plan', {}).get(
-            'total_price_per_cycle', None)
+        'name': plan.get('name', "").strip() if plan else None,
+        'price': plan.get('total_price_per_cycle', None) if plan else None
     }
 
     return res
