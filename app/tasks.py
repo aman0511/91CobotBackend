@@ -162,7 +162,7 @@ def get_data_from_api_of_hub(date_str, hub):
     if data:
         return data
 
-    logger.info("Requesting data from cobot of url {0} and date {0}".format(
+    logger.info("Requesting data from cobot of url {0} and date {1}".format(
         membership_url, date_str))
 
     # call end-point, send request and collect response
