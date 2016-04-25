@@ -134,21 +134,16 @@ class Membership(ModelMixin):
             self.canceled_to = c_date
             last_membership_plan = self.get_last_membership_plan()
             if last_membership_plan:
-                self.last_membership_plan.end_date = c_date
+                last_membership_plan.end_date = c_date
             self.save()
 
     def get_last_membership_plan(self):
         """
         Return a last membership_plan instance
         """
-        if getattr(self, 'last_membership_plan', None):
-            # if last_membership_plan attribute is set then return it
-            return self.last_membership_plan
-
-        # otherwise, get it from database, set attribute and return it
         m_plans = self.plans.all()
-        self.last_membership_plan = m_plans[-1] if len(m_plans) > 0 else None
-        return self.last_membership_plan
+        last_membership_plan = m_plans[-1] if len(m_plans) > 0 else None
+        return last_membership_plan
 
 
 class MembershipPlan(ModelMixin):
