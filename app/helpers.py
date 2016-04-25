@@ -28,12 +28,13 @@ def preprocess_membership_data(membership_data):
     """
     res = dict()
 
+    user = membership_data.get("user", {'id': None})
+
     # collect user data
     res['user'] = {
         'name': membership_data.get('name', None),
-        'email': membership_data.get('email', None) if
-        membership_data.get('email', None) else None,
-        'cobot_id': membership_data.get("user", {}).get('id', None)
+        'email':  membership_data.get('email', None),
+        'cobot_id': user.get('id', None)
     }
 
     # collect membership data

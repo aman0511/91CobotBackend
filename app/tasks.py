@@ -108,9 +108,15 @@ def process_data_of_hub(hub, data, date_of_crawl=None):
             # check if membership ended or not and, if yes set canceled_to date
             # of membership and also set end_date of last membership_plan of
             # this membership_plan
-            m_canceled_date = get_date_obj_from_str(
-                membership_data['canceled_to'])
-            membership.set_canceled_date(m_canceled_date)
+            try:
+                m_canceled_date = get_date_obj_from_str(
+                    membership_data['canceled_to'])
+
+                membership.set_canceled_date(m_canceled_date)
+            except ValueError:
+                # this means canceled_to is not set or not in valid format
+                # just skip this
+                pass
 
         except Exception as e:
             logger.error(e, exc_info=True)
@@ -194,9 +200,9 @@ def get_and_process_data_of_day(date_str, hub_name):
         # get data of a hub for a day
         data = get_data_from_api_of_hub(date_str, hub=hub)
 
-        if data:
-            # process a data of a hub
-            process_data_of_hub(hub, data, date_of_crawl=date_str)
+        # if data:
+        #     # process a data of a hub
+        #     process_data_of_hub(hub, data, date_of_crawl=date_str)
 
 
 def start_data_task_of_day(date_str, hub_name):
